@@ -1,6 +1,6 @@
-import { create, Mutate, StoreApi } from 'zustand';
-import { persist } from 'zustand/middleware';
-import { AIModel, getModelConfig, ModelConfig } from '@/lib/models';
+import { create, Mutate, StoreApi } from "zustand";
+import { persist } from "zustand/middleware";
+import { AIModel, getModelConfig, ModelConfig } from "@/lib/models";
 
 type ModelStore = {
   selectedModel: AIModel;
@@ -10,7 +10,7 @@ type ModelStore = {
 
 type StoreWithPersist = Mutate<
   StoreApi<ModelStore>,
-  [['zustand/persist', { selectedModel: AIModel }]]
+  [["zustand/persist", { selectedModel: AIModel }]]
 >;
 
 export const withStorageDOMEvents = (store: StoreWithPersist) => {
@@ -20,17 +20,17 @@ export const withStorageDOMEvents = (store: StoreWithPersist) => {
     }
   };
 
-  window.addEventListener('storage', storageEventCallback);
+  window.addEventListener("storage", storageEventCallback);
 
   return () => {
-    window.removeEventListener('storage', storageEventCallback);
+    window.removeEventListener("storage", storageEventCallback);
   };
 };
 
 export const useModelStore = create<ModelStore>()(
   persist(
     (set, get) => ({
-      selectedModel: 'Gemini 2.5 Flash',
+      selectedModel: "Gemini 2.5 Flash",
 
       setModel: (model) => {
         set({ selectedModel: model });
@@ -42,10 +42,10 @@ export const useModelStore = create<ModelStore>()(
       },
     }),
     {
-      name: 'selected-model',
+      name: "selected-model",
       partialize: (state) => ({ selectedModel: state.selectedModel }),
-    }
-  )
+    },
+  ),
 );
 
 withStorageDOMEvents(useModelStore);
