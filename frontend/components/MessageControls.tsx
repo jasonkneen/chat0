@@ -10,11 +10,11 @@ import { useAPIKeyStore } from '@/frontend/stores/APIKeyStore';
 interface MessageControlsProps {
   threadId: string;
   message: UIMessage;
-  setMessages: UseChatHelpers['setMessages'];
+  setMessages: UseChatHelpers<UIMessage>['setMessages'];
   content: string;
   setMode?: Dispatch<SetStateAction<'view' | 'edit'>>;
-  reload: UseChatHelpers['reload'];
-  stop: UseChatHelpers['stop'];
+  regenerate: UseChatHelpers<UIMessage>['regenerate'];
+  stop: UseChatHelpers<UIMessage>['stop'];
 }
 
 export default function MessageControls({
@@ -23,7 +23,7 @@ export default function MessageControls({
   setMessages,
   content,
   setMode,
-  reload,
+  regenerate,
   stop,
 }: MessageControlsProps) {
   const [copied, setCopied] = useState(false);
@@ -42,7 +42,7 @@ export default function MessageControls({
     stop();
 
     if (message.role === 'user') {
-      await deleteTrailingMessages(threadId, message.createdAt as Date, false);
+      await deleteTrailingMessages(threadId, message.id, false);
 
       setMessages((messages) => {
         const index = messages.findIndex((m) => m.id === message.id);
@@ -54,7 +54,7 @@ export default function MessageControls({
         return messages;
       });
     } else {
-      await deleteTrailingMessages(threadId, message.createdAt as Date);
+      await deleteTrailingMessages(threadId, message.id);
 
       setMessages((messages) => {
         const index = messages.findIndex((m) => m.id === message.id);
@@ -68,7 +68,7 @@ export default function MessageControls({
     }
 
     setTimeout(() => {
-      reload();
+      regenerate();
     }, 0);
   };
 

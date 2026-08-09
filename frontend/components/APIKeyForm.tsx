@@ -12,7 +12,7 @@ import { Badge } from './ui/badge';
 
 const formSchema = z.object({
   google: z.string().trim().min(1, {
-    message: 'Google API key is required for Title Generation',
+    error: 'Google API key is required for Title Generation',
   }),
   openrouter: z.string().trim().optional(),
   openai: z.string().trim().optional(),

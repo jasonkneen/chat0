@@ -13,13 +13,11 @@ export default function Thread() {
   const isModelStoreHydrated = useModelStore.persist?.hasHydrated();
   const messages = useLiveQuery(() => getMessagesByThreadId(id), [id]);
 
-  const convertToUIMessages = (messages?: DBMessage[]) => {
-    return messages?.map((message) => ({
+  const convertToUIMessages = (messages?: DBMessage[]): UIMessage[] => {
+    return (messages ?? []).map((message) => ({
       id: message.id,
       role: message.role,
       parts: message.parts as UIMessage['parts'],
-      content: message.content || '',
-      createdAt: message.createdAt,
     }));
   };
 
@@ -29,7 +27,7 @@ export default function Thread() {
     <Chat
       key={id}
       threadId={id}
-      initialMessages={convertToUIMessages(messages) || []}
+      initialMessages={convertToUIMessages(messages)}
     />
   );
 }

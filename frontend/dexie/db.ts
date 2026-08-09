@@ -13,8 +13,7 @@ interface DBMessage {
   id: string;
   threadId: string;
   parts: UIMessage['parts'];
-  content: string;
-  role: 'user' | 'assistant' | 'system' | 'data';
+  role: UIMessage['role'];
   createdAt: Date;
 }
 

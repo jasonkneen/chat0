@@ -56,36 +56,48 @@ export const getMessagesByThreadId = async (threadId: string) => {
 };
 
 export const createMessage = async (threadId: string, message: UIMessage) => {
+  const createdAt = new Date();
+
   return await db.transaction('rw', [db.messages, db.threads], async () => {
     await db.messages.add({
       id: message.id,
       threadId,
       parts: message.parts,
       role: message.role,
-      content: message.content,
-      createdAt: message.createdAt || new Date(),
+      createdAt,
     });
 
     await db.threads.update(threadId, {
-      lastMessageAt: message.createdAt || new Date(),
+      lastMessageAt: createdAt,
     });
   });
 };
 
+/**
+ * Deletes every message at or after the anchor message (or strictly after it
+ * when `gte` is false). The anchor is identified by id because `UIMessage` no
+ * longer carries a `createdAt` — the stored row is the single source of truth
+ * for message ordering.
+ */
 export const deleteTrailingMessages = async (
   threadId: string,
-  createdAt: Date,
+  messageId: string,
   gte: boolean = true
 ) => {
-  const startKey = gte
-    ? [threadId, createdAt]
-    : [threadId, new Date(createdAt.getTime() + 1)];
-  const endKey = [threadId, Dexie.maxKey];
-
   return await db.transaction(
     'rw',
     [db.messages, db.messageSummaries],
     async () => {
+      const anchor = await db.messages.get(messageId);
+
+      // Nothing persisted for the anchor yet, so nothing trails it either.
+      if (!anchor) return;
+
+      const startKey = gte
+        ? [threadId, anchor.createdAt]
+        : [threadId, new Date(anchor.createdAt.getTime() + 1)];
+      const endKey = [threadId, Dexie.maxKey];
+
       const messagesToDelete = await db.messages
         .where('[threadId+createdAt]')
         .between(startKey, endKey)

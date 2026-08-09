@@ -1,5 +1,11 @@
 import { ChevronDown, Check, ArrowUpIcon } from 'lucide-react';
-import { memo, useCallback, useMemo } from 'react';
+import {
+  Dispatch,
+  memo,
+  SetStateAction,
+  useCallback,
+  useMemo,
+} from 'react';
 import { Textarea } from '@/frontend/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { Button } from '@/frontend/components/ui/button';
@@ -10,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from '@/frontend/components/ui/dropdown-menu';
 import useAutoResizeTextarea from '@/hooks/useAutoResizeTextArea';
-import { UseChatHelpers, useCompletion } from '@ai-sdk/react';
+import { UseChatHelpers } from '@ai-sdk/react';
 import { useParams } from 'react-router';
 import { useNavigate } from 'react-router';
 import { createMessage, createThread } from '@/frontend/dexie/queries';
@@ -26,15 +32,15 @@ import { useMessageSummary } from '../hooks/useMessageSummary';
 
 interface ChatInputProps {
   threadId: string;
-  input: UseChatHelpers['input'];
-  status: UseChatHelpers['status'];
-  setInput: UseChatHelpers['setInput'];
-  append: UseChatHelpers['append'];
-  stop: UseChatHelpers['stop'];
+  input: string;
+  status: UseChatHelpers<UIMessage>['status'];
+  setInput: Dispatch<SetStateAction<string>>;
+  sendMessage: UseChatHelpers<UIMessage>['sendMessage'];
+  stop: UseChatHelpers<UIMessage>['stop'];
 }
 
 interface StopButtonProps {
-  stop: UseChatHelpers['stop'];
+  stop: UseChatHelpers<UIMessage>['stop'];
 }
 
 interface SendButtonProps {
@@ -46,8 +52,6 @@ const createUserMessage = (id: string, text: string): UIMessage => ({
   id,
   parts: [{ type: 'text', text }],
   role: 'user',
-  content: text,
-  createdAt: new Date(),
 });
 
 function PureChatInput({
@@ -55,7 +59,7 @@ function PureChatInput({
   input,
   status,
   setInput,
-  append,
+  sendMessage,
   stop,
 }: ChatInputProps) {
   const canChat = useAPIKeyStore((state) => state.hasRequiredKeys());
@@ -100,7 +104,7 @@ function PureChatInput({
     const userMessage = createUserMessage(messageId, currentInput.trim());
     await createMessage(threadId, userMessage);
 
-    append(userMessage);
+    sendMessage(userMessage);
     setInput('');
     adjustHeight(true);
   }, [
@@ -108,7 +112,7 @@ function PureChatInput({
     status,
     setInput,
     adjustHeight,
-    append,
+    sendMessage,
     id,
     textareaRef,
     threadId,

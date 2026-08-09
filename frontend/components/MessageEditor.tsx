@@ -1,76 +1,51 @@
 import {
   createMessage,
   deleteTrailingMessages,
-  createMessageSummary,
 } from '@/frontend/dexie/queries';
-import { UseChatHelpers, useCompletion } from '@ai-sdk/react';
+import { UseChatHelpers } from '@ai-sdk/react';
 import { useState } from 'react';
 import { UIMessage } from 'ai';
 import { Dispatch, SetStateAction } from 'react';
 import { v4 as uuidv4 } from 'uuid';
 import { Textarea } from './ui/textarea';
 import { Button } from './ui/button';
-import { useAPIKeyStore } from '@/frontend/stores/APIKeyStore';
 import { toast } from 'sonner';
+import { useMessageSummary } from '../hooks/useMessageSummary';
 
 export default function MessageEditor({
   threadId,
   message,
   content,
   setMessages,
-  reload,
+  regenerate,
   setMode,
   stop,
 }: {
   threadId: string;
   message: UIMessage;
   content: string;
-  setMessages: UseChatHelpers['setMessages'];
+  setMessages: UseChatHelpers<UIMessage>['setMessages'];
   setMode: Dispatch<SetStateAction<'view' | 'edit'>>;
-  reload: UseChatHelpers['reload'];
-  stop: UseChatHelpers['stop'];
+  regenerate: UseChatHelpers<UIMessage>['regenerate'];
+  stop: UseChatHelpers<UIMessage>['stop'];
 }) {
   const [draftContent, setDraftContent] = useState(content);
-  const getKey = useAPIKeyStore((state) => state.getKey);
 
-  const { complete } = useCompletion({
-    api: '/api/completion',
-    ...(getKey('google') && {
-      headers: { 'X-Google-API-Key': getKey('google')! },
-    }),
-    onResponse: async (response) => {
-      try {
-        const payload = await response.json();
-
-        if (response.ok) {
-          const { title, messageId, threadId } = payload;
-          await createMessageSummary(threadId, messageId, title);
-        } else {
-          toast.error(
-            payload.error || 'Failed to generate a summary for the message'
-          );
-        }
-      } catch (error) {
-        console.error(error);
-      }
-    },
-  });
+  const { complete } = useMessageSummary();
 
   const handleSave = async () => {
     try {
-      await deleteTrailingMessages(threadId, message.createdAt as Date);
+      await deleteTrailingMessages(threadId, message.id);
 
-      const updatedMessage = {
+      const updatedMessage: UIMessage = {
         ...message,
         id: uuidv4(),
-        content: draftContent,
         parts: [
           {
-            type: 'text' as const,
+            type: 'text',
             text: draftContent,
           },
         ],
-        createdAt: new Date(),
       };
 
       await createMessage(threadId, updatedMessage);
@@ -97,7 +72,7 @@ export default function MessageEditor({
       stop();
 
       setTimeout(() => {
-        reload();
+        regenerate();
       }, 0);
     } catch (error) {
       console.error('Failed to save message:', error);

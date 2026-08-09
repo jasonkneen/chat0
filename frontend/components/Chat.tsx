@@ -1,9 +1,9 @@
 import { useChat } from '@ai-sdk/react';
+import { useMemo, useState } from 'react';
 import Messages from './Messages';
 import ChatInput from './ChatInput';
 import ChatNavigator from './ChatNavigator';
-import { UIMessage } from 'ai';
-import { v4 as uuidv4 } from 'uuid';
+import { DefaultChatTransport, UIMessage } from 'ai';
 import { createMessage } from '@/frontend/dexie/queries';
 import { useAPIKeyStore } from '@/frontend/stores/APIKeyStore';
 import { useModelStore } from '@/frontend/stores/ModelStore';
@@ -31,42 +31,38 @@ export default function Chat({ threadId, initialMessages }: ChatProps) {
     scrollToMessage,
   } = useChatNavigator();
 
-  const {
-    messages,
-    input,
-    status,
-    setInput,
-    setMessages,
-    append,
-    stop,
-    reload,
-    error,
-  } = useChat({
-    id: threadId,
-    initialMessages,
-    experimental_throttle: 50,
-    onFinish: async ({ parts }) => {
-      const aiMessage: UIMessage = {
-        id: uuidv4(),
-        parts: parts as UIMessage['parts'],
-        role: 'assistant',
-        content: '',
-        createdAt: new Date(),
-      };
+  const [input, setInput] = useState('');
 
-      try {
-        await createMessage(threadId, aiMessage);
-      } catch (error) {
-        console.error(error);
-      }
-    },
-    headers: {
-      [modelConfig.headerKey]: getKey(modelConfig.provider) || '',
-    },
-    body: {
-      model: selectedModel,
-    },
-  });
+  const apiKey = getKey(modelConfig.provider) || '';
+
+  const transport = useMemo(
+    () =>
+      new DefaultChatTransport<UIMessage>({
+        api: '/api/chat',
+        headers: {
+          [modelConfig.headerKey]: apiKey,
+        },
+        body: {
+          model: selectedModel,
+        },
+      }),
+    [modelConfig, apiKey, selectedModel]
+  );
+
+  const { messages, status, setMessages, sendMessage, stop, regenerate, error } =
+    useChat({
+      id: threadId,
+      messages: initialMessages,
+      transport,
+      throttle: 50,
+      onFinish: async ({ message }) => {
+        try {
+          await createMessage(threadId, message);
+        } catch (error) {
+          console.error(error);
+        }
+      },
+    });
 
   return (
     <div className="relative w-full">
@@ -79,7 +75,7 @@ export default function Chat({ threadId, initialMessages }: ChatProps) {
           messages={messages}
           status={status}
           setMessages={setMessages}
-          reload={reload}
+          regenerate={regenerate}
           error={error}
           registerRef={registerRef}
           stop={stop}
@@ -88,7 +84,7 @@ export default function Chat({ threadId, initialMessages }: ChatProps) {
           threadId={threadId}
           input={input}
           status={status}
-          append={append}
+          sendMessage={sendMessage}
           setInput={setInput}
           stop={stop}
         />

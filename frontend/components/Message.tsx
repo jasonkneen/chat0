@@ -12,18 +12,18 @@ function PureMessage({
   threadId,
   message,
   setMessages,
-  reload,
+  regenerate,
   isStreaming,
   registerRef,
   stop,
 }: {
   threadId: string;
   message: UIMessage;
-  setMessages: UseChatHelpers['setMessages'];
-  reload: UseChatHelpers['reload'];
+  setMessages: UseChatHelpers<UIMessage>['setMessages'];
+  regenerate: UseChatHelpers<UIMessage>['regenerate'];
   isStreaming: boolean;
   registerRef: (id: string, ref: HTMLDivElement | null) => void;
-  stop: UseChatHelpers['stop'];
+  stop: UseChatHelpers<UIMessage>['stop'];
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
@@ -41,11 +41,7 @@ function PureMessage({
 
         if (type === 'reasoning') {
           return (
-            <MessageReasoning
-              key={key}
-              reasoning={part.reasoning}
-              id={message.id}
-            />
+            <MessageReasoning key={key} reasoning={part.text} id={message.id} />
           );
         }
 
@@ -62,7 +58,7 @@ function PureMessage({
                   message={message}
                   content={part.text}
                   setMessages={setMessages}
-                  reload={reload}
+                  regenerate={regenerate}
                   setMode={setMode}
                   stop={stop}
                 />
@@ -76,7 +72,7 @@ function PureMessage({
                   message={message}
                   setMode={setMode}
                   setMessages={setMessages}
-                  reload={reload}
+                  regenerate={regenerate}
                   stop={stop}
                 />
               )}
@@ -90,7 +86,7 @@ function PureMessage({
                   content={part.text}
                   message={message}
                   setMessages={setMessages}
-                  reload={reload}
+                  regenerate={regenerate}
                   stop={stop}
                 />
               )}
